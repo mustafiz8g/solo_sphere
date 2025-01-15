@@ -1,9 +1,55 @@
 import { useState } from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
+import useAuth from '../hooks/useAuth'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
+
 
 const AddJob = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth()
   const [startDate, setStartDate] = useState(new Date())
+  const handlSubmit = async(e) => {
+    e.preventDefault()
+    const form = e.target;
+    const title = form.job_title.value;
+    const email = form.email.value;
+    const deadline = startDate;
+    const category = form.category.value;
+    const min_price = parseFloat(form.min_price.value)
+    const max_price = parseFloat(form.max_price.value)
+    const description = form.description.value;
+
+    const formData = {
+      title,
+      buyer: {
+        email,
+        name: user?.displayName,
+        photo: user?.photURL
+      },
+      deadline,
+      category,
+      min_price,
+      max_price,
+      description,
+      bid_count:0
+    }
+    //make a post request
+    try{
+      await axios.post(`${import.meta.env.VITE_API_URL}/add-job`, formData)
+      form.reset()
+      toast.success('Data Added Successfully')
+      navigate('/my-posted-jobs')
+    }
+    catch(err){
+      console.log(err)
+     toast.error(err.message)
+    }
+    
+    
+  }
 
   return (
     <div className='flex justify-center items-center min-h-[calc(100vh-306px)] my-12'>
@@ -12,7 +58,7 @@ const AddJob = () => {
           Post a Job
         </h2>
 
-        <form>
+        <form onSubmit={handlSubmit}>
           <div className='grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2'>
             <div>
               <label className='text-gray-700 ' htmlFor='job_title'>
@@ -31,6 +77,8 @@ const AddJob = () => {
                 Email Address
               </label>
               <input
+                defaultValue={user.email}
+                disabled={true}
                 id='emailAddress'
                 type='email'
                 name='email'
