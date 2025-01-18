@@ -26,6 +26,10 @@ async function run() {
   try {
 
     const jobsCollection = client.db('solo_db').collection('jobs')
+    const bidsCollection = client.db('solo_db').collection('bids')
+    // generate jwt 
+
+    
 
     app.post('/add-job', async(req,res) => {
       const jobData = req.body
@@ -74,6 +78,86 @@ async function run() {
       res.send(result)
     })
 
+    // bid related api 
+    // save a bid data
+    app.post('/add-bid', async(req,res) => {
+      const bidData = req.body
+      // 0. check a user placed a bid already in this job
+      const query = { email: bidData.email, jobId: bidData.jobId}
+      const alreadyExist = await bidsCollection.findOne(query)
+      console.log(alreadyExist)
+      if(alreadyExist) return res
+                             .status(400)
+                             .send('you have already placed a bid on this job')
+        console.log('If already exist -->', alreadyExist)
+
+      // 1. save data in bid collection
+      const result = await bidsCollection.insertOne(bidData)
+      // 2 increase bid count in jobs collection
+      const filter = { _id: new ObjectId(bidData.jobId)}
+      const update = {
+        $inc:{bid_count: 1},
+      }
+      const updateBidCount = await jobsCollection.updateOne(filter,update)
+      // console.log(updateBidCount)
+      res.send(result)
+    })
+
+    // get all bid for a specific user
+    app.get('/bids/:email', async(req, res) => {
+      const isBuyer = req.query.buyer;
+      const email = req.params.email;
+      let query = {}
+      if(isBuyer){
+        // const query = { buyer: email }
+        query.buyer = email
+      }
+      else{
+        // const query = {email}
+        query.email = email
+      }
+      // const email = req.params.email;
+      const result = await bidsCollection.find(query).toArray();
+      res.send(result)
+    })
+    // get all bid request for a specific user
+    // app.get('/bid-requests/:email', async(req, res) => {
+    //   const email = req.params.email;
+    //   const query = { buyer: email }
+    //   const result = await bidsCollection.find(query).toArray();
+    //   res.send(result)
+    // })
+
+    // update bit status 
+    app.patch('/bid-status/:id', async(req, res) => {
+      const id = req.params.id
+      const {status} = req.body;
+      // return console.log(status)
+      const filter = { _id: new ObjectId(id) }
+      const updated = {
+        $set: {  status }
+      }
+      const result = await bidsCollection.updateOne(filter,updated)
+      res.send(result)
+
+    })
+
+    // get all jobbs
+    app.get('/all-jobs', async(req, res) =>{
+      const filter = req.query.filter;
+      const search = req.query.search;
+      const sort = req.query.sort;
+      // console.log(search)
+      let options = {}
+      if(sort) options = {sort: {deadline: sort === 'asc'? 1 : -1}}
+      let query = {title:{
+        $regex: search,
+        $options:'i'
+      }}
+      if(filter) query.category = filter
+      const result = await jobsCollection.find(query, options).toArray()
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })

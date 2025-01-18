@@ -5,7 +5,9 @@ import axios from 'axios'
 import {format} from "date-fns"
 import toast from 'react-hot-toast'
 
+
 const MyPostedJobs = () => {
+  
   const {user} = useAuth()
   const [jobs, setJobs] = useState([])
   useEffect( () => {

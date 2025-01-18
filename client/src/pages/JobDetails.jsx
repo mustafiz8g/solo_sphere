@@ -1,12 +1,16 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import {format} from 'date-fns'
+import { compareAsc, format } from 'date-fns'
 
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import useAuth from '../hooks/useAuth'
+import toast from 'react-hot-toast'
 
 const JobDetails = () => {
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const [startDate, setStartDate] = useState(new Date())
   const { id } = useParams();
 
@@ -21,15 +25,68 @@ const JobDetails = () => {
     setJobs(data)
     setStartDate(new Date(data.deadline))
   }
-  const { 
- 
+  const {
+    _id,
     title,
     deadline,
     category,
     min_price,
     max_price,
-    description, 
-  buyer} = job || {}
+    description,
+    buyer } = job || {}
+
+  // handle form submit 
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    const form = e.target;
+    const price = form.price.value;
+    const email = user?.email;
+    const comment = form.comment.value;
+    const jobId = _id
+
+    //0 check bid permission
+
+    if (user?.email === buyer?.email) return toast.error('Action not permitted')
+    // const deadline = startDate
+    //1  Deadline crossed validation 
+    if (compareAsc(new Date(), new Date(deadline)) === 1)
+      return toast.error('Deadline Crossed , Bidding forbidden')
+    //  2 Price within maximum pirce range validation
+    if (price > max_price) return toast.error('Offer less of ltleast equal to maximum pricez')
+
+    // 3 offered deadline is within sellers deadline validation
+    if (compareAsc(new Date(startDate), new Date(deadline)) === 1) return toast.error("please offer a date within deadline")
+
+    const bidData = {
+      jobId,
+      price,
+      email,
+      comment,
+      deadline: startDate,
+      title,
+      category,
+      status: 'pending',
+      buyer : buyer?.email
+
+
+    }
+    // console.log(bidData)
+    try {
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/add-bid`, bidData)
+
+      form.reset()
+      toast.success('bid successful')
+      navigate('/my-bids')
+      console.log(data)
+    }
+    catch (error) {
+      console.log(error)
+      toast.error(error?.response?.data)
+    }
+
+  }
+
 
 
   return (
@@ -37,23 +94,23 @@ const JobDetails = () => {
       {/* Job Details */}
       <div className='flex-1  px-4 py-7 bg-white rounded-md shadow-md md:min-h-[350px]'>
         <div className='flex items-center justify-between'>
-         {
-          deadline &&  <span className='text-sm font-light text-gray-800 '>
-          Deadline:  {format(new Date(deadline),'P')}
-          </span>
-         }
+          {
+            deadline && <span className='text-sm font-light text-gray-800 '>
+              Deadline:  {format(new Date(deadline), 'P')}
+            </span>
+          }
           <span className='px-4 py-1 text-xs text-blue-800 uppercase bg-blue-200 rounded-full '>
-           {category}
+            {category}
           </span>
         </div>
 
         <div>
           <h1 className='mt-2 text-3xl font-semibold text-gray-800 '>
-          {title}
+            {title}
           </h1>
 
           <p className='mt-2 text-lg text-gray-600 '>
-          {description}
+            {description}
           </p>
           <p className='mt-6 text-sm font-bold text-gray-600 '>
             Buyer Details:
@@ -69,13 +126,13 @@ const JobDetails = () => {
             </div>
             <div className='rounded-full object-cover overflow-hidden w-14 h-14'>
               <img
-                src={buyer?.photo}
+                src={user?.photoURL}
                 alt=''
               />
             </div>
           </div>
           <p className='mt-6 text-lg font-bold text-gray-600 '>
-          Range: ${min_price} - ${max_price}
+            Range: ${min_price} - ${max_price}
           </p>
         </div>
       </div>
@@ -85,7 +142,7 @@ const JobDetails = () => {
           Place A Bid
         </h2>
 
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className='grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2'>
             <div>
               <label className='text-gray-700 ' htmlFor='price'>
@@ -107,6 +164,7 @@ const JobDetails = () => {
               <input
                 id='emailAddress'
                 type='email'
+                defaultValue={user?.email}
                 name='email'
                 disabled
                 className='block w-full px-4 py-2 mt-2 text-gray-700 bg-white border border-gray-200 rounded-md   focus:border-blue-400 focus:ring-blue-300 focus:ring-opacity-40  focus:outline-none focus:ring'
