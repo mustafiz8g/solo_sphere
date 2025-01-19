@@ -14,7 +14,9 @@ const Login = () => {
   // Google Signin
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle()
+       await signInWithGoogle()
+      // generate token -----------
+   
 
       toast.success('Signin Successful')
       navigate(from, { replace: true })

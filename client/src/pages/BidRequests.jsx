@@ -3,15 +3,17 @@ import useAuth from "../hooks/useAuth";
 import axios from "axios";
 import BidRequestsTable from "../components/BidRequestsTable";
 import toast from "react-hot-toast";
+import UseAxiosSecure from "../hooks/UseAxiosSecure";
 
 const BidRequests = () => {
+  const axiosSecure = UseAxiosSecure()
   const [ bids, setBids ] = useState([])
   const {user} = useAuth();
 useEffect( () => {
   fetchAllBids()
 },[user])
 const fetchAllBids = async () => {
-  const {data} = await axios.get(`${import.meta.env.VITE_API_URL}/bids/${user?.email}?buyer=true`
+  const {data} = await axiosSecure.get(`/bids/${user?.email}?buyer=true`
 
   )
   setBids(data)
@@ -22,7 +24,7 @@ const handleStatusChange = async(id, prevStatus, status) => {
   // if(prevStatus === status || prevStatus === 'Complete')
   //    return console.log('not allowed')
   try{
-    const {data} = await axios.patch(`${import.meta.env.VITE_API_URL}/bid-status/${id}`, 
+    const {data} = await axiosSecure.patch(`/bid-status/${id}`, 
   { status }
     )
     console.log(data)
