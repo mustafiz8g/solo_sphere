@@ -2,18 +2,32 @@
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs'
 import 'react-tabs/style/react-tabs.css'
 import JobCard from './JobCard'
-import { useEffect, useState } from 'react'
+// import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useQuery } from '@tanstack/react-query'
+import LoadingSpinner from './LoadingSpinner'
 
 const TabCategories = () => {
-  const [jobs, setJobs] = useState([])
-  useEffect( () => {
-    fetchAllJobs()
-  },[])
-  const fetchAllJobs = async () => {
+  // const [jobs, setJobs] = useState([])
+  // useEffect( () => {
+  //   fetchAllJobs()
+  // },[])
+  // const fetchAllJobs = async () => {
+  //   const {data} = await axios.get(`${import.meta.env.VITE_API_URL}/jobs`)
+  //   setJobs(data)
+  // }
+  
+const {data : jobs, isLoading, isPending,isFetching, isFetched, isError} = useQuery({
+  queryKey: ['jobs'],
+  queryFn: async () => {
     const {data} = await axios.get(`${import.meta.env.VITE_API_URL}/jobs`)
-    setJobs(data)
+return data
   }
+})
+// console.log(data, isLoading)
+if(isLoading, isPending, isFetching) 
+if(isLoading) return <LoadingSpinner></LoadingSpinner>
+if(isError) console.log(isError)
   return (
     <Tabs>
       <div className=' container px-6 py-10 mx-auto'>

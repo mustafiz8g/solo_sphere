@@ -2,15 +2,32 @@ import { useState } from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import useAuth from '../hooks/useAuth'
-import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import UseAxiosSecure from '../hooks/UseAxiosSecure'
 
 
 const AddJob = () => {
+  const queryClient = useQueryClient()
   const navigate = useNavigate();
+  const axiosSecure = UseAxiosSecure()
   const { user } = useAuth()
   const [startDate, setStartDate] = useState(new Date())
+  const { isPending, mutateAsync} = useMutation({
+    mutationFn: async jobData => {
+      await axiosSecure.post(`/add-job`, jobData)
+    },
+    onSuccess: () => {
+      console.log('data saved')
+      queryClient.invalidateQueries({queryKey: ['jobs']})
+
+    },
+    onError: (err) => {
+      console.log(err)
+    },
+
+  })
   const handlSubmit = async(e) => {
     e.preventDefault()
     const form = e.target;
@@ -37,9 +54,10 @@ const AddJob = () => {
       bid_count:0
     }
     console.log(formData)
-    //make a post request
+    //make a post request using mutation hook
     try{
-      await axios.post(`${import.meta.env.VITE_API_URL}/add-job`, formData)
+      // await axios.post(`${import.meta.env.VITE_API_URL}/add-job`, formData)
+      await mutateAsync(formData)
       form.reset()
       toast.success('Data Added Successfully')
       navigate('/my-posted-jobs')
@@ -147,7 +165,7 @@ const AddJob = () => {
           </div>
           <div className='flex justify-end mt-6'>
             <button className='disabled:cursor-not-allowed px-8 py-2.5 leading-5 text-white transition-colors duration-300 transhtmlForm bg-gray-700 rounded-md hover:bg-gray-600 focus:outline-none focus:bg-gray-600'>
-              Save
+             {isPending ? 'Saving...': 'Save'} 
             </button>
           </div>
         </form>
